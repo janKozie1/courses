@@ -67,22 +67,26 @@ router.post(
                 linkedin
             } = req.body
 
-            const profileFields = { social: {} }
+            const profileFields = {
+                status,
+                user: req.user.id,
+                skills: skills.split(',').map(e => e.trim()),
+                company,
+                website,
+                location,
+                bio,
+                status,
+                githubusername,
+                skills,
+                social: {
+                    youtube,
+                    facebook,
+                    twitter,
+                    instagram,
+                    linkedin
+                }
+            }
 
-            if (company) profileFields.company = company
-            if (website) profileFields.website = website
-            if (location) profileFields.location = location
-            if (bio) profileFields.bio = bio
-            if (githubusername) profileFields.githubusername = githubusername
-            if (youtube) profileFields.social.youtube = youtube
-            if (facebook) profileFields.social.facebook = facebook
-            if (twitter) profileFields.social.twitter = twitter
-            if (instagram) profileFields.social.youtube = instagram
-            if (linkedin) profileFields.social.youtube = linkedin
-
-            profileFields.status = status
-            profileFields.user = req.user.id
-            profileFields.skills = skills.split(',').map(e => e.trim())
             try {
                 let profile = await Profile.findOne({ user: req.user.id })
                 if (profile) {
@@ -101,6 +105,117 @@ router.post(
                 res.status(500).send('Internal server error')
             }
         } catch (err) {}
+    }
+)
+
+//@route   POST api/profile/all
+//@desc    Get all user profiles
+//@access  Public
+
+router.get('/all', async (req, res) => {
+    try {
+        const profiles = await Profile.find().populate('user', [
+            'name',
+            'avatar'
+        ])
+        res.json(profiles)
+    } catch (err) {
+        console.error(err.msg)
+        res.status(500).json([{ err: 'Internal server error' }])
+    }
+})
+
+//@route   POST api/profile/user/:user_id
+//@desc    Get user profile by id
+//@access  Public
+
+router.get('/user/:user_id', async (req, res) => {
+    try {
+        const profile = await Profile.findOne({
+            user: req.params.user_id
+        }).populate('user', ['name', 'avatar'])
+        if (!profile) {
+            return res.status(404).json([{ msg: 'Profile not found' }])
+        }
+        res.json(profile)
+    } catch (err) {
+        if (err.kind === 'ObjectId') {
+            return res.status(404).json([{ msg: 'Profile not found' }])
+        }
+        return res.status(500).json([{ err: 'Internal server error' }])
+    }
+})
+
+//@route   DELETE api/profile/
+//@desc    Delete, user & posts
+//@access  Private
+
+router.delete('/', auth, async (req, res) => {
+    console.log(req.user.id)
+    try {
+        await Profile.findOneAndRemove({
+            user: req.user.id
+        })
+        await User.findOneAndRemove({
+            _id: req.user.id
+        })
+        return res.json({ msg: 'User removed' })
+    } catch (err) {
+        console.log(err)
+        return res.status(500).json([{ err: 'Internal server error' }])
+    }
+})
+
+//@route   DELETE api/profile/experiance
+//@desc    Add profile experiance
+//@access  Private
+
+router.put(
+    '/experiance',
+    [
+        auth,
+        [
+            check('title', 'Title is required')
+                .not()
+                .isEmpty(),
+            check('company', 'Company is required')
+                .not()
+                .isEmpty(),
+            check('from', 'From date is required')
+                .not()
+                .isEmpty()
+        ]
+    ],
+    async (req, res) => {
+        let errors = validationResult(req)
+
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: error.array() })
+        }
+
+        const {
+            title,
+            company,
+            from,
+            location,
+            to,
+            current,
+            description
+        } = req.body
+
+        const newExp = {
+            title,
+            company,
+            location,
+            from,
+            to,
+            current,
+            description
+        }
+        try {
+        } catch (err) {
+            return res.status(500).json([{ err: 'Internal server error' }])
+        }
     }
 )
 
