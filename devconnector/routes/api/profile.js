@@ -193,17 +193,7 @@ router.put(
             return res.status(400).json({ errors: error.array() })
         }
 
-        const {
-            title,
-            company,
-            from,
-            location,
-            to,
-            current,
-            description
-        } = req.body
-
-        const newExp = {
+        const newExp = (({
             title,
             company,
             location,
@@ -211,7 +201,10 @@ router.put(
             to,
             current,
             description
-        }
+        }) => {
+            title, company, location, from, to, current, description
+        })(req.body)
+        
         try {
         } catch (err) {
             return res.status(500).json([{ err: 'Internal server error' }])
